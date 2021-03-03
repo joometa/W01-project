@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 
 import jwt
 import datetime
@@ -12,12 +12,13 @@ app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config['UPLOAD_FOLDER'] = "./static/profile_pics"
 
-
-
 SECRET_KEY = 'SPARTA'
 
 client = MongoClient('localhost', 27017)
+# client = MongoClient('mongodb://test:test@localhost', 27017)
 db = client.movie
+
+
 
 @app.route('/')
 def home():
@@ -35,13 +36,14 @@ def home():
 # # HTML 화면 보여주기
 # @app.route('/')
 # def home():
-#     return render_template('login.html')
+#     return render_template('index.html')
 
 
 @app.route('/login')
 def login():
     msg = request.args.get("msg")
     return render_template('login.html', msg=msg)
+
 
 @app.route('/sign_in', methods=['POST'])
 def sign_in():
@@ -63,6 +65,7 @@ def sign_in():
     # 찾지 못하면
     else:
         return jsonify({'result': 'fail', 'msg': '아이디/비밀번호가 일치하지 않습니다.'})
+
 
 # 회원가입
 @app.route('/sign_up/save', methods=['POST'])
@@ -89,11 +92,46 @@ def check_dup():
     exists = bool(db.users.find_one({"username": username_receive}))
     return jsonify({'result': 'success', 'exists': exists})
 
+#리뷰 작성
+@app.route('/posting', methods=['POST'])
+def posting():
+    token_receive = request.cookies.get('mytoken')
+    try:
+        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=['HS256'])
+        user_info = db.users.find_one({"username": payload["id"]})
+        comment_receive = request.form["comment_give"]
+        date_receive = request.form["date_give"]
+        print(type(date_receive))
+        doc = {
+            "username": user_info["username"],
+            "profile_name": user_info["profile_name"],
+            "profile_pic_real": user_info["profile_pic_real"],
+            "comment": comment_receive,
+            "date": date_receive
+        }
+        db.posts.insert_one(doc)
+        return jsonify({"result": "success", 'msg': '포스팅 성공'})
+    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
+        return redirect(url_for("home"))
+
 # api
 @app.route('/api/list', methods=['GET'])
 def movie_get():
     movie_star = list(db.movies.find({}, {'_id': False}).sort('like', -1))
     return jsonify({'movie_stars': movie_star})
+
+#리뷰 가져오기
+@app.route("/get_posts", methods=['GET'])
+def get_posts():
+    token_receive = request.cookies.get('mytoken')
+    try:
+        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=['HS256'])
+        posts = list(db.posts.find({}).sort("date", -1).limit(10))
+        for post in posts:
+            post["_id"] = str(post["_id"])
+        return jsonify({"result": "success", "msg": "포스팅을 가져왔습니다.", "posts": posts})
+    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
+        return redirect(url_for("home"))
 
 
 # 좋아요
@@ -108,21 +146,6 @@ def toggle_like():
     db.movies.update_one({'name': name_receive}, {'$set': {'like': new_like}})
 
     return jsonify({'msg': '좋아요!'})
-
-
-
-# @app.route('/api/delete', methods=['POST'])
-# def delete_star():
-#     sample_receive = request.form['sample_give']
-#     print(sample_receive)
-#     return jsonify({'msg': 'delete 연결되었습니다!'})
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
