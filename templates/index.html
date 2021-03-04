@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Webpage Title -->
+        <title>Home | 팝콘 극장</title>
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+        <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+
+{#       <meta property="og:image" content="{{ url_for('static', filename='ogimage.png') }}"/>#}
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <!-- Bulma CSS -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+        <!-- Font Awesome CSS -->
+        <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+              integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+              crossorigin="anonymous">
+        <link rel="preconnect" href="https://fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css2?family=Gamja+Flower&family=Stylish&display=swap" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css2?family=Hi+Melody&family=Jua&display=swap" rel="stylesheet">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+        <script src="{{ url_for('static', filename='myjs.js') }}"></script>
+        <script>
+            $(document).ready(function () {
+                showStar();
+            });
+
+            function toggle_review() {
+                $("#review-box").toggleClass("is-hidden")
+            }
+
+            function showStar() {
+                $.ajax({
+                    type: 'GET',
+                    url: '/api/list?sample_give=샘플데이터',
+                    data: {},
+                    success: function (response) {
+                        let movie_stars = response['movie_stars']
+                        for (let i = 0; i < movie_stars.length; i++) {
+                            let name = movie_stars[i]['name']
+                            let num = movie_stars[i]['num']
+                            let href = movie_stars[i]['href']
+                            let img = movie_stars[i]['img']
+                            let director = movie_stars[i]['director']
+                            let genre = movie_stars[i]['genre']
+                            let like = movie_stars[i]['like']
+
+                            let temp_html =
+                                `<div>
+                                <div class="box">
+                                    <article class="media">
+                                        <div class="media-left">
+                                            <figure class="image is-128x115">
+                                                <img src="${img}" alt="Image">
+                                            </figure>
+                                        </div>
+                                    <div class="media-content">
+                                        <div class="content">
+                                            <p>
+                                                <strong>${name}</strong>
+                                                <normal>평점⭐️: ${num}</normal>
+                                                <br> 감독 : ${director}
+                                                <br> 장르 : ${genre}
+                                                <br> <a href="${href}"> 더 많은 내용을 보시려면 클릭하세요</a>
+                                                </p>
+                                         </div>
+                                            <nav class="level is-mobile">
+                                                <div class="level-left">
+
+                                                    <div class="level-left">
+                                                        <a class="level-item is-sparta" aria-label="heart" onclick='heart('', 'heart')">
+                                            <span class="icon is-small">
+                                            <i class="fa fa-heart" aria-hidden="true"></i></span><span>
+                                                <span onclick="toggle_like('${name}')" class="like-num">좋아요 ${like}</span>
+                                                        </a>
+                                                    </div>
+                                                    </span>
+
+                                                    </a>
+                                                </div>
+                                            </nav>
+                                        </div>
+                                    </article>
+                                </div>
+                                  </div>
+                                    </div>`
+                            $('#movie_box').append(temp_html)
+                        }
+                    }
+                });
+            }
+
+            function review_btn() {
+                if ($("#review-box").css("display") == "block") {
+                    $("#review-box").hide();
+                } else {
+                    $("#review-box").show();
+                }
+            }
+
+            function toggle_like(name) {
+                $.ajax({
+                    type: 'POST',
+                    url: '/api/like',
+                    data: {name_give: name},
+                    success: function (response) {
+                        alert(response['msg']);
+                        window.location.reload()
+                    }
+                });
+            }
+
+
+            function toggle_sign_up() {
+                $("#sign-up-box").toggleClass("is-hidden")
+                $("#div-sign-in-or-up").toggleClass("is-hidden")
+                $("#btn-check-dup").toggleClass("is-hidden")
+                $("#help-id").toggleClass("is-hidden")
+                $("#help-password").toggleClass("is-hidden")
+                $("#help-password2").toggleClass("is-hidden")
+            }
+
+            function sign_out() {
+                $.removeCookie('mytoken', {path: '/'});
+                alert('로그아웃!')
+                window.location.href = "http://52.79.250.154/login"
+            }
+
+            function post() {
+                let comment = $("#textarea-post").val()
+                let today = new Date().toISOString()
+                $.ajax({
+                    type: "POST",
+                    url: "/posting",
+                    data: {
+                        comment_give: comment,
+                        date_give: today
+                    },
+                    success: function (response) {
+                        $("#modal-post").removeClass("is-active")
+                        window.location.reload()
+                    }
+                })
+            }
+
+            function get_posts() {
+                $("#post-box").empty()
+                $.ajax({
+                    type: "GET",
+                    url: "/get_posts",
+                    data: {},
+                    success: function (response) {
+                        if (response["result"] == "success") {
+                            let posts = response["posts"]
+                            for (let i = 0; i < posts.length; i++) {
+                                let post = posts[i]
+                                let time_post = new Date(post["date"])
+                                let html_temp = `<div class="box" id="${post["_id"]}">
+                                        <article class="media">
+                                            <div class="media-left">
+                                                <a class="image is-64x64" href="/user/${post['username']}">
+                                                    <img class="is-rounded" src="/static/${post['profile_pic_real']}"
+                                                         alt="Image">
+                                                </a>
+                                            </div>
+                                            <div class="media-content">
+                                                <div class="content">
+                                                    <p>
+                                                        <strong>${post['profile_name']}</strong> <small>@${post['username']}</small>
+                                                        <br>
+                                                        ${post['comment']}
+                                                    </p>
+                                                </div>
+                                                <nav class="level is-mobile">
+                                                    <div class="level-left">
+                                                    </div>
+
+                                                </nav>
+                                            </div>
+                                        </article>
+                                    </div>`
+                                $("#post-box").append(html_temp)
+                            }
+                        }
+                    }
+                })
+            }
+
+            $(document).ready(function () {
+                get_posts()
+            })
+        </script>
+        <style>
+
+            .title {
+                margin: auto;
+                width: 100%;
+                text-align: center;
+                margin-bottom: 20px;
+                font-size: 50px;
+                padding-top: 50px;
+            }
+
+            .subtitle {
+                margin: auto;
+                width: 100%;
+                text-align: center;
+                padding-top: 30px;
+            }
+
+
+            .navbar.is-white {
+                background-color: #ffdd57;
+            }
+
+            .box {
+                margin: 30px;
+
+            }
+
+            .button {
+                margin-right: 10px;
+            }
+
+            .review-list {
+                height: 50px;
+                width: 50%;
+                margin: 10px auto auto auto;
+                padding-top: 5px;
+            }
+
+            .modal-content{
+                width : 1000px
+            }
+
+            @media screen and (max-width: 780px) {
+            .modal-content {
+                width: 80%;
+            }
+        }
+        </style>
+
+    </head>
+    <body>
+
+        {#        배너#}
+        <nav class="navbar is-fixed-top is-white" role="navigation" aria-label="main navigation">
+            <div class="navbar-brand">
+                <a class="navbar-item" href="/">
+                    <img src="{{ url_for('static', filename='logo1.png') }}">
+                    <strong class="is-sparta"
+                            style="font-family: 'Stylish', sans-serif;font-size: larger; margin-left: 10px;margin-top: 5px;">팝콘 극장</strong>
+                </a>
+            </div>
+            <button class="button is-light sign-in-btn" onclick="sign_out()">로그아웃</button>
+            {#     <div class="title-btn">#}
+            {#          <form action="http://localhost:5000/login"><button class="button is-light sign-in-btn" onclick="sign_out()">로그아웃</button></form>#}
+            {#      </div>#}
+        </nav>
+
+        {#        메인화면#}
+        <section class="hero is-warning">
+            <div class="hero-body">
+                <p class="title" style="font-family: 'Jua', sans-serif;">팝콘 극장</p>
+                <p class="subtitle" style="font-family: 'Hi Melody', cursive; font-size: 25px;">현재 상영중인 영화들의 정보를 확인하고 리뷰 작성과 좋아요를 눌러보세요!</p>
+        </section>
+
+        {#        모달#}
+        <div class="modal" id="modal-post">
+            <div class="modal-background" onclick='$("#modal-post").removeClass("is-active")'></div>
+            <div class="modal-content">
+                <div class="box">
+                    <article class="media">
+                        <div class="media-content">
+                            <div class="field">
+                                <p class="control">
+                                        <textarea id="textarea-post" class="textarea"
+                                                  placeholder="영화에 대한 생각을 작성해 주세요."></textarea>
+                                </p>
+                            </div>
+                            <nav class="level is-mobile">
+                                <div class="level-left">
+
+                                </div>
+                                <div class="level-right">
+                                    <div class="level-item">
+                                        <a class="button is-sparta" onclick="post()">포스팅하기</a>
+                                    </div>
+                                    <div class="level-item">
+                                        <a class="button is-sparta is-outlined"
+                                           onclick='$("#modal-post").removeClass("is-active")'>취소</a>
+                                    </div>
+                                </div>
+                            </nav>
+                        </div>
+                    </article>
+                </div>
+            </div>
+            <button class="modal-close is-large" aria-label="close"
+                    onclick='$("#modal-post").removeClass("is-active")'></button>
+        </div>
+
+        {#        리뷰리스트#}
+        <div class="review-list">
+            <article class="media">
+                <button class="button is-sparta" onclick="review_btn()">리뷰보기</button>
+                <div class="media-content">
+                    <div class="field">
+                        <p class="control">
+                            <input id="input-post" class="input is-rounded" placeholder="영화에 대한 생각을 작성해 주세요."
+                                   onclick='$("#modal-post").addClass("is-active")'></p>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        {#        리뷰박스#}
+        <div id="review-box" style="display: none">
+            <section class="section">
+                <div id="post-box" class="container">
+                    <div class="box">
+                        <article class="media">
+                            <div class="media-left">
+                            </div>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        <strong>홍길동</strong> <small>@username</small> <small>10분 전</small>
+                                        <br>
+                                        글을 적는 칸
+                                    </p>
+                                </div>
+                                <nav class="level is-mobile">
+                                    <div class="level-left">
+                                        <a class="level-item is-sparta" aria-label="heart"
+                                           onclick="toggle_like('', 'heart')">
+                                            <span class="icon is-small"><i class="fa fa-heart"
+                                                                           aria-hidden="true"></i></span>&nbsp;<span
+                                                class="like-num">2.7k</span>
+                                        </a>
+                                    </div>
+
+                                </nav>
+                            </div>
+                        </article>
+                    </div>
+
+                </div>
+
+            </section>
+        </div>
+        {#무비박스#}
+        <div class="movie_list" id="movie_box">
+        </div>
+
+        {#로그아웃#}
+
+
+    </body>
+</html>
+
+{#            <form action="http://localhost:5000/login"><input type="submit" value="Logout"/></form>#}
